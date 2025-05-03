@@ -3,13 +3,22 @@ import os
 import glob
 import pandas as pd
 from datetime import datetime
+import argparse
 
 # === CONFIGURATION ===
 script_extension = '.py'
 script_dir = os.path.dirname(os.path.abspath(__file__))
 final_dir = os.path.join(script_dir, "excel")
 processed_log_path = os.path.join(final_dir, "last_processed_files.log")
-banks = ["SBI", "ICICI", "HDFC"]
+
+# Parse command-line arguments for passwords and banks
+parser = argparse.ArgumentParser(description="Process and merge credit card statements.")
+parser.add_argument("--sbi-password", type=str, help="Password for SBI statements")
+parser.add_argument("--hdfc-password", type=str, help="Password for HDFC statements")
+parser.add_argument("--icici-password", type=str, help="Password for ICICI statements (if any)")
+parser.add_argument("--banks", type=str, required=True, help="Comma-separated list of banks to process (e.g., 'SBI,HDFC')")
+args = parser.parse_args()
+
 # Read processed card+file entries into a set
 if os.path.exists(processed_log_path):
     with open(processed_log_path, "r") as f:
@@ -17,24 +26,34 @@ if os.path.exists(processed_log_path):
 else:
     processed_files = set()
 
+# Define configurations for each bank
 card_configs = {
     "sbi": {
         "script": "excel_script_sbi.py",
         "dir": os.path.join(script_dir, "sbi"),
-        "password": "181020027568",
+        "password": args.sbi_password,
     },
     "hdfc": {
         "script": "excel_script_hdfc.py",
         "dir": os.path.join(script_dir, "hdfc"),
-        "password": "ROHI0455",
+        "password": args.hdfc_password,
     },
     "icici": {
         "script": "excel_script_icici.py",
         "dir": os.path.join(script_dir, "icici"),
-        "password": None,
+        "password": args.icici_password,
     },
 }
 
+# Filter the banks to process based on user input
+banks_to_process = [bank.lower() for bank in args.banks.split(",")]
+card_configs = {key: value for key, value in card_configs.items() if key in banks_to_process}
+
+if not card_configs:
+    print("❌ No valid banks specified. Please provide valid bank names (e.g., 'SBI,HDFC').")
+    exit(1)
+
+# Process statements for the specified banks
 start_year = 2023
 end_year = datetime.now().year
 
@@ -66,7 +85,7 @@ for year in range(start_year, end_year + 1):
                     continue
 
                 print(f"📄 Found {card.upper()} file: {pdf_filename}")
-                cmd = ["python3", os.path.join(script_dir, config["script"]),
+                cmd = ["python", os.path.join(script_dir, config["script"]),
                        "--in-dir", config["dir"],
                        "--out-dir", final_dir]
                 if config["password"]:
@@ -103,12 +122,11 @@ for year in range(start_year, end_year + 1):
             print(f"❌ No new statements found for {mm}/{yyyy}, skipping merge.")
 
         # Cleanup temp Excel and txt files
-        for bank in banks:
+        for bank in banks_to_process:
             pattern = os.path.join(final_dir, f"{bank}_??_????.xlsx")  # ?? = MM, ???? = YYYY
             for filepath in glob.glob(pattern):
                 try:
                     os.remove(filepath)
-                    # print(f"🗑️ Deleted: {filepath}")
                 except Exception as e:
                     print(f"❗ Error deleting {filepath}: {e}")
 
