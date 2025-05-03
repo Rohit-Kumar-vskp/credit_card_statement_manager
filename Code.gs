@@ -1,9 +1,9 @@
 function saveAttachmentsToStructuredFolders() {
-  var mainFolderId = "1ZRw-1xhUv3K2-Q6T1Z2aCoFZGetqwfun"; // 🔁 Replace with your actual folder ID
-  var subjectFolderMap = {
+  var mainFolderId = "YOUR-FOLDER-ID-HERE"; // 🔁 Replace with your actual folder ID
+  var subjectFolderMap = { // Replace the mailing subject according to your format
     "SBI Card ELITE Monthly Statement": "sbi",
     "HDFC Bank - Diners Club International Credit Card Statement": "hdfc"
-    // "ICICI BANK": "icici"
+    "ICICI BANK": "icici"
   };
 
   var mainFolder = DriveApp.getFolderById(mainFolderId);
