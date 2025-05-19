@@ -1,9 +1,9 @@
 function saveAttachmentsToStructuredFolders() {
-  var mainFolderId = "YOUR-FOLDER-ID-HERE"; // 🔁 Replace with your actual folder ID
-  var subjectFolderMap = { // Replace the mailing subject according to your format
+  var mainFolderId = "1ZRw-1xhUv3K2-Q6T1Z2aCoFZGetqwfun"; // 🔁 Replace with your actual folder ID
+  var subjectFolderMap = {
     "SBI Card ELITE Monthly Statement": "sbi",
-    "HDFC Bank - Diners Club International Credit Card Statement": "hdfc"
-    "ICICI BANK": "icici"
+    "HDFC Bank - Diners Club International Credit Card Statement": "hdfc",
+    "ICICI Bank Credit Card Statement": "icici"
   };
 
   var mainFolder = DriveApp.getFolderById(mainFolderId);
@@ -20,7 +20,7 @@ function saveAttachmentsToStructuredFolders() {
         attachments.forEach(attachment => {
           var originalFileName = attachment.getName();
           if (originalFileName && originalFileName.toLowerCase().endsWith(".pdf")) {
-            var { year, month } = extractYearMonth(originalFileName, cardType);
+            var { year, month } = extractYearMonth(originalFileName, cardType, message.getSubject());
 
             if (year && month) {
               var cardFolder = getOrCreateFolder(mainFolder, cardType);
@@ -48,14 +48,17 @@ function saveAttachmentsToStructuredFolders() {
 }
 
 // Extract year and month from filename based on card type
-function extractYearMonth(fileName, cardType) {
+function extractYearMonth(fileName, cardType, subjectLine) {
   try {
     var year = "", month = "";
 
     if (cardType === "icici") {
-      var parts = fileName.split("-");
-      year = parts[0];
-      month = parts[1];
+      var match = subjectLine.match(/to\s+([A-Za-z]+)\s+\d{1,2}\s+(\d{4})$/i);
+      if (match) {
+        var monthName = match[1];
+        year = match[2];
+        month = getMonthNumberFromName(monthName);
+      }
     } else if (cardType === "sbi") {
       var parts = fileName.split("_");
       if (parts.length > 1) {
@@ -96,4 +99,13 @@ function getOrCreateFolder(parent, name) {
     return folders.next();
   }
   return parent.createFolder(name);
+}
+
+function getMonthNumberFromName(monthName) {
+  var months = {
+    january: 1, february: 2, march: 3, april: 4,
+    may: 5, june: 6, july: 7, august: 8,
+    september: 9, october: 10, november: 11, december: 12
+  };
+  return months[monthName.toLowerCase()] || null;
 }
